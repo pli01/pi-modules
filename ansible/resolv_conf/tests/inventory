@@ -1,0 +1,2 @@
+[resolv_conf]
+localhost ansible_connection=local

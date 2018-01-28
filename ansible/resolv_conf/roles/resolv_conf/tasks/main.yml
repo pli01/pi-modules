@@ -1,0 +1,5 @@
+---
+# tasks file for resolv_conf
+- name: Ensure dns servers are configured in /etc/resolv.conf
+  template: src=resolv.conf.j2 dest={{ dns_resolv_conf_file }}
+  when: dns_resolv_conf_file is defined and (dns_domain_search is defined or dns_domain is defined or dns_nameserver is defined)

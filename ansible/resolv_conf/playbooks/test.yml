@@ -1,0 +1,7 @@
+---
+- name: Configure resolv_conf
+  hosts: localhost
+  become: yes
+  roles:
+    - resolv_conf
+

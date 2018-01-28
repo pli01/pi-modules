@@ -1,0 +1,10 @@
+{% if dns_domain_search is defined %}
+search {{ ' '.join( dns_domain_search ) }}
+{% endif %}
+
+{% if dns_domain is defined %}
+domain {{dns_domain}}
+{% endif %}
+{% for ns in dns_nameserver %}
+nameserver {{ns}}
+{% endfor %}

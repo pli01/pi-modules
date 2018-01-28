@@ -1,0 +1,9 @@
+version: '2'
+
+# define services
+services:
+  resolv_conf:
+    image: resolv_conf:latest
+    entrypoint: /docker-entrypoint.sh resolv_conf
+#    links:
+#      - required docker service (if necessary)

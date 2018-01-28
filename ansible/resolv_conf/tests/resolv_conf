@@ -1,0 +1,10 @@
+---
+#contains variable def for test purpose
+# resolv.conf
+dns_domain_search:
+ - "domain-search-1"
+ - "domain-search-2"
+
+dns_nameserver:
+ - "public_dns_1"
+ - "public_dns_2"
