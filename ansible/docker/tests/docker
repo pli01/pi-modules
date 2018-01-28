@@ -1,0 +1,16 @@
+---
+
+check_mode: false
+proxy: yes
+proxy_env:
+  http_proxy: "http://localhost:80"
+  https_proxy: "http://localhost:80"
+
+#docker_compose_version: 1.8.0
+#docker_version: 17.03.0~ce-0~debian-jessie
+
+docker_users: []
+
+docker_graph_dir: /var/lib/docker
+docker_dns: []
+docker_dns_search: []

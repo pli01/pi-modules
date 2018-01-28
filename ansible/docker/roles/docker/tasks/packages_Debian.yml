@@ -1,0 +1,23 @@
+---
+- name: Install OS dependencies
+  apt: pkg={{ item }} state=present update_cache=true
+  with_items: '{{ docker_common_packages }}'
+
+- name: add Docker apt-key
+  apt_key: url='{{ docker.deb.repo_keyserver }}' state=present validate_certs=no
+  environment: "{{ proxy_env }}"
+  when: ansible_os_family == 'Debian'
+
+- name: Add Docker repository
+  apt_repository: repo='{{ docker.deb.repo }}' state=present
+  environment: "{{ proxy_env }}"
+
+- name: install docker
+  apt: pkg={{ docker_package }}{% if docker_version is defined and docker_version != "" %}={{ docker_version }}{% endif %} state=present update_cache=true
+  when: not ansible_check_mode
+
+#- name: Ensure Service 'docker' Is stopped
+#  service:
+#    name: '{{ docker_service_name }}'
+#    state: stopped
+#  when: ( not ansible_check_mode )

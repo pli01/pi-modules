@@ -1,0 +1,19 @@
+---
+docker_compose:
+  repository: https://github.com/docker/compose/releases/download
+docker_compose_version: 1.18.0
+
+docker_version: 17.12.0~ce-0~debian
+docker_apt_release_channel: stable
+docker:
+  deb:
+    repo_keyserver: "https://download.docker.com/linux/debian/gpg"
+    repo: "deb https://download.docker.com/linux/{{ ansible_distribution|lower }} {{ ansible_distribution_release }} {{ docker_apt_release_channel }}"
+
+
+docker_users: []
+#docker_registry: [ 'private-registry.com' ]
+
+docker_graph_dir: /var/lib/docker
+docker_dns: []
+docker_dns_search: []

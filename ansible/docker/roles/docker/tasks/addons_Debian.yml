@@ -1,0 +1,22 @@
+---
+- name: Install debootstrap for building primary docker images (debian)
+  apt: name=debootstrap default_release=jessie-backports update_cache=yes state=present
+
+- name: Install rinse for building primary docker images (redhat/centos)
+  apt: name=rinse update_cache=yes state=present
+
+- name: Get docker compose
+  get_url: url="{{ docker_compose.repository}}/{{ docker_compose_version }}/{{ docker_compose_name }}" dest=/usr/local/bin/docker-compose mode=755 validate_certs=no use_proxy={{proxy}} force=yes
+  environment: "{{ proxy_env }}"
+
+- name: Ajout du groupe docker
+  group: name=docker state=present
+
+- name: Ajout des users au group docker
+  user: name={{ item }} groups=docker append=yes
+  with_items: '{{ docker_users }}'
+  when: 'docker_users is defined'
+
+## TODO:
+# add rinse rhel6.packages (with redhat-release-server)
+# patch contrib/mkimage/deboostrap

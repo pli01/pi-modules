@@ -1,0 +1,7 @@
+---
+- name: Configure docker
+  hosts: localhost
+  become: yes
+  roles:
+    - docker
+

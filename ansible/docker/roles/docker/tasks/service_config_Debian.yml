@@ -1,0 +1,98 @@
+---
+- name: handle docker_virtualisation
+  set_fact: docker={{ ansible_virtualization_type is defined and ansible_virtualization_type == 'docker' and ansible_virtualization_role == 'guest' }}
+
+- name: prepare docker image dir
+  file: path={{ docker_graph_dir }} state=directory mode=0711
+  when: not ansible_check_mode
+
+- name: prepare systemd configuration for docker /lib/systemd/system/docker.service
+  ini_file: dest=/lib/systemd/system/docker.service section='{{ item.section }}' option='{{ item.option }}' value='{{ item.value }}'
+  with_items:
+   - { section: 'Service', option: 'EnvironmentFile', value: '-/etc/default/docker' }
+   - { section: 'Service', option: 'ExecStart', value: '/usr/bin/dockerd -H fd:// $DOCKER_OPTS $DNS_OPTS' }
+#   - { section: 'Service', option: 'ExecStart', value: '/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:4243 $DOCKER_OPTS' }
+  when: not ansible_check_mode
+  notify:
+    - "Restart Service 'docker'"
+
+- name: prepare systemd configuration for docker base image build
+  file: path=/etc/systemd/system/docker.service.d state=directory mode=0755
+  when: not ansible_check_mode
+
+- name: configure web proxy for docker base image build
+  ini_file: dest=/etc/systemd/system/docker.service.d/http-proxy.conf section='{{ item.section }}' option='{{ item.option }}' value='{{ item.value }}' create=yes
+  with_items:
+   - { section: 'Service', option: 'Environment', value: '"HTTP_PROXY=$HTTP_PROXY" "HTTPS_PROXY=$HTTPS_PROXY" "NO_PROXY=$NO_PROXY"' }
+  when: not ansible_check_mode
+  notify:
+    - "Restart Service 'docker'"
+
+- name: configure DNS_OPTS /etc/default/docker
+  lineinfile:
+    dest: /etc/default/docker
+    regexp: ^DNS_OPTS=
+    line: 'DNS_OPTS="{% for dns in docker_dns -%} --dns {{ dns }} {% endfor %} {% for dns in docker_dns_search -%} --dns-search {{ dns }} {% endfor %}"'
+  become: true
+  when: ( not ansible_check_mode ) and ( docker_dns is defined )
+  notify:
+    - "Restart Service 'docker'"
+
+- name: configure DOCKER_OPTS /etc/default/docker
+  lineinfile:
+    dest: /etc/default/docker
+    regexp: ^DOCKER_OPTS=
+    line: 'DOCKER_OPTS="--insecure-registry localhost.local {% if docker_registry is defined %}{% for registry in docker_registry -%} --insecure-registry {{ registry }} {% endfor %}{% endif %} -g {{ docker_graph_dir }}"'
+  become: true
+  when: ( not ansible_check_mode ) and ( docker_graph_dir is defined and docker_graph_dir )
+  notify:
+    - "Restart Service 'docker'"
+
+- name: configure HTTP_PROXY /etc/default/docker
+  lineinfile:
+    dest: /etc/default/docker
+    regexp: ^HTTP_PROXY=
+    line: 'HTTP_PROXY="{{ proxy_env.http_proxy }}"'
+  become: true
+  when: ( not ansible_check_mode ) and proxy_env.http_proxy is defined
+  notify:
+    - "Restart Service 'docker'"
+
+- name: configure HTTPS_PROXY /etc/default/docker
+  lineinfile:
+    dest: /etc/default/docker
+    regexp: ^HTTPS_PROXY=
+    line: 'HTTPS_PROXY="{{ proxy_env.https_proxy }}"'
+  become: true
+  when: ( not ansible_check_mode ) and proxy_env.https_proxy is defined
+  notify:
+    - "Restart Service 'docker'"
+
+- name: configure NO_PROXY /etc/default/docker
+  lineinfile:
+    dest: /etc/default/docker
+    regexp: ^NO_PROXY=
+    line: 'NO_PROXY="localhost,127.0.0.1,{{ proxy_env.no_proxy }}"'
+  become: true
+  when: ( not ansible_check_mode ) and proxy_env.no_proxy is defined
+  notify:
+    - "Restart Service 'docker'"
+
+- name: Ensure Service 'docker' Is enabled
+  service:
+    name: '{{ docker_service_name }}'
+    enabled: yes
+  when: ( not ansible_check_mode )
+
+# Fire any pending restart handlers now. This is needed to ensure that any
+# port or prefix changes are applied before the rest of the config, and to
+# ensure that the first-run setup wizard is disabled.
+- meta: flush_handlers
+
+- name: Ensure Service 'docker' Is started
+  service:
+    name: '{{ docker_service_name }}'
+    state: started
+  when: ( not ansible_check_mode ) and not docker
+
+

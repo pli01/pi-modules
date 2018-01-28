@@ -1,0 +1,9 @@
+version: '2'
+
+# define services
+services:
+  docker:
+    image: docker:latest
+    entrypoint: /docker-entrypoint.sh docker
+#    links:
+#      - required docker service (if necessary)

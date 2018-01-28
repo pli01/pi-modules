@@ -1,0 +1,33 @@
+FROM debian/jessie
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN echo "Acquire::http::Proxy \"$http_proxy\";" > /etc/apt/apt.conf.d/01proxy; echo "Acquire::https::Proxy \"$https_proxy\";" >>  /etc/apt/apt.conf.d/01proxy
+RUN echo "Acquire::https::dml.forge.com::Verify-Peer \"false\";" >> /etc/apt/apt.conf.d/02ignoressl
+
+RUN test -f /etc/apt/apt.conf.d/docker-gzip-indexes && sed -i -e 's/^/#/g' /etc/apt/apt.conf.d/docker-gzip-indexes
+
+RUN apt-get clean && \
+    apt-get update -qy && apt-get install -qy --no-install-recommends \
+    make \
+    apt-transport-https
+
+COPY deployment.tar.gz /opt/deployment.tar.gz
+RUN cd /opt && tar xvfz deployment.tar.gz
+
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+
+RUN mkdir -p /opt/test-config/group_vars
+COPY test-config/inventory /opt/test-config
+COPY test-config/docker /opt/test-config/group_vars
+COPY ansible.cfg  /opt/ansible.cfg
+
+RUN sed -i -e "s@http_proxy: \"http://localhost:80\"@http_proxy: \"$http_proxy\"@g ; s@https_proxy: \"http://localhost:80\"@https_proxy: \"$https_proxy\"@g" \
+    /opt/test-config/group_vars/docker
+
+RUN cd /opt/ && ansible-playbook -i test-config -c local playbooks/test.yml --check --diff -vv && \
+     echo "running ansible_check_mode=false" && \
+     ansible-playbook -i test-config -c local playbooks/test.yml
+
+
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
